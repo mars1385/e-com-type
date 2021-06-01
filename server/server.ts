@@ -10,6 +10,7 @@ import { redisClient } from './middleware/cache';
 import connectRedis from 'connect-redis';
 import authRouter from './routers/authRouter';
 import categoryRouter from './routers/categoryRouter';
+import fileupload from 'express-fileupload';
 // -----------------end--------------------
 
 dotenv.config();
@@ -41,6 +42,7 @@ dataBaseConnection();
 
 // middleware
 app.use(express.json());
+app.use(fileupload());
 
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));

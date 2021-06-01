@@ -5,5 +5,7 @@ declare namespace NodeJS {
     PORT: string;
     SESSION_SECRET: string;
     NODE_ENV: string;
+    IMAGE_UPLOAD_SIZE: number;
+    FILE_UPLOAD_PATH: string;
   }
 }

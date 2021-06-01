@@ -8,7 +8,7 @@ import {
   ManyToOne,
   OneToMany,
 } from 'typeorm';
-import { IsEmpty, Length, IsDateString } from 'class-validator';
+import { Length, IsDateString } from 'class-validator';
 import { User } from './User';
 import { OrderDetail } from './OrderDetail';
 
