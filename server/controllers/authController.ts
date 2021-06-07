@@ -3,34 +3,28 @@ import { asyncHandler } from '../utils/asyncHandler';
 import { RequestError } from '../utils/errors-responses/RequestError';
 import { RequestValidationError } from '../utils/errors-responses/RequestValidationError';
 import { NotFoundError } from '../utils/errors-responses/NotFoundError';
-import { User } from '../database/entities/User';
 import { validate } from 'class-validator';
-import { hash, verify } from 'argon2';
-
-interface userInput {
-  firstName: string;
-  lastName: string;
-  email: string;
-  password: string;
-}
+import { userInput } from '../utils/inputs/userInputs';
+import UserManager from '../database/db/userManager';
+import { verify } from 'argon2';
 
 // @desc    Register  user
 // @route   POST api/auth/register
 // @access  Public
 export const register = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const { firstName, lastName, email, password }: userInput = req.body;
-  const newUser = await User.create({ firstName, lastName, email, password });
+
+  const existingUser = await UserManager.findByEmail(email);
+  if (existingUser) return next(new RequestError('User with this email already exists.'));
+
+  const newUser = await UserManager.create({ firstName, lastName, email, password });
 
   const validations = await validate(newUser);
   if (validations.length > 0) {
     return next(new RequestValidationError(validations));
   }
 
-  const existingUser = await User.findOne({ where: { email } });
-  if (existingUser) return next(new RequestError('User with this email already exists.'));
-
-  newUser.password = await hash(newUser.password);
-  await newUser.save();
+  await UserManager.save(newUser);
 
   req.session.userId = newUser.id;
 
@@ -47,7 +41,7 @@ export const login = asyncHandler(async (req: Request, res: Response, next: Next
 
   if (!email || !password) return next(new RequestError('Please provide an email and password'));
 
-  const user = await User.findOne({ where: { email } });
+  const user = await UserManager.findByEmail(email);
 
   if (!user) return next(new RequestError('Email Or Password is Wrong'));
 
@@ -65,7 +59,8 @@ export const login = asyncHandler(async (req: Request, res: Response, next: Next
 // @route   GET api/auth/user
 // @access  Private
 export const userInfo = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-  const user = await User.findOne({ where: { id: req.session.userId } });
+  const id = req.session.userId;
+  const user = await UserManager.findById(id);
 
   if (!user) {
     return next(new NotFoundError('User can not be found'));
