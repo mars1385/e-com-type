@@ -9,6 +9,7 @@ export class RequestValidationError extends ErrorResponse {
   }
 
   errorMessage() {
+    console.log(this.errors);
     return this.errors.map((error) => ({
       message: Object.values(error.constraints!).toString(),
       field: error.property,

@@ -4,33 +4,22 @@ import { RequestError } from '../utils/errors-responses/RequestError';
 import { RequestValidationError } from '../utils/errors-responses/RequestValidationError';
 import { NotFoundError } from '../utils/errors-responses/NotFoundError';
 import { validate } from 'class-validator';
-import { Category } from '../database/entities/Category';
-import { Product } from 'database/entities/Product';
 import { UploadedFile } from 'express-fileupload';
 import path from 'path';
-import { getConnection } from 'typeorm';
-import slugify from 'slugify';
+import ProductManager from '../database/db/ProductManager';
+import CategoryManager from '../database/db/CategoryManager';
 
 // @desc    Get All Product
 // @route   GET api/product
 // @access  Public
-export const getProducts = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-  const page = req.body.page ? req.body.page : 1;
-  const limit = req.body.limit ? req.body.limit + 1 : 10;
-  const skip = (page - 1) * limit;
+export const getProducts = asyncHandler(async (req: Request, res: Response, _next: NextFunction) => {
+  // const page = req.body.page ? req.body.page : 1;
+  // const limit = req.body.limit ? req.body.limit + 1 : 10;
+  // const skip = (page - 1) * limit;
 
-  const products = await getConnection().query(`
-    select p.* 
-    json_build_object(
-      'id' : c.id,
-      'title' : c.title
-    ) category
-    from product p 
-    ${req.query.category ? 'inner join category c on c.id = p."categoryId"' : ''}
-    ${req.query.sort ? `order by p.price ${req.query.sort}` : 'order by p."createdAt" DESC'}
-    skip ${skip}
-    limit ${limit}
-  `);
+  const products = await ProductManager.getAll({ categoryTitle: req.body.category });
+
+  res.status(200).json({ products });
 });
 
 // @desc    Get single Product
@@ -41,7 +30,7 @@ export const getProduct = asyncHandler(async (req: Request, res: Response, next:
     return next(new NotFoundError('Product dose not exits!'));
   }
 
-  const product = await Product.findOne({ where: { id: req.params.productId } });
+  const product = await ProductManager.findById(req.params.productId);
 
   if (!product) {
     return next(new NotFoundError('Product dose not exits!'));
@@ -60,23 +49,20 @@ export const createProduct = asyncHandler(async (req: Request, res: Response, ne
 
   if (!req.params.categoryId) return next(new NotFoundError('Cant found Category'));
 
-  const category = await Category.findOne({ where: { id: req.params.categoryId } });
+  const category = await CategoryManager.findById(req.params.categoryId);
 
   if (!category) return next(new NotFoundError('Cant found Category'));
 
-  const existingCategoryProduct = await Product.findOne({ where: { title } });
+  const existingCategoryProduct = await ProductManager.findByTitle(title);
 
   if (existingCategoryProduct) {
     return next(new RequestError('Product with this title already exists.'));
   }
 
-  const slug = slugify(title, { lower: true });
-
-  const product = await Product.create({
+  const product = await ProductManager.create({
     title,
     genre,
     price,
-    slug,
     categoryId: category.id,
   });
 
@@ -85,7 +71,8 @@ export const createProduct = asyncHandler(async (req: Request, res: Response, ne
     return next(new RequestValidationError(validations));
   }
 
-  await product.save();
+  await ProductManager.save(product);
+
   res.status(201).json({
     product,
   });
@@ -99,7 +86,7 @@ export const editProduct = asyncHandler(async (req: Request, res: Response, next
     return next(new NotFoundError('Product dose not exist!'));
   }
 
-  const product = await Product.findOne({ where: { id: req.params.productId } });
+  const product = await ProductManager.findById(req.params.productId);
 
   if (!product) {
     return next(new NotFoundError('Product dose not exist!'));
@@ -111,22 +98,16 @@ export const editProduct = asyncHandler(async (req: Request, res: Response, next
     return next(new RequestError('All * flied need to fill'));
   }
 
-  const existProduct = title !== product.title ? await Product.findOne({ where: { title } }) : '';
+  const existProduct = title !== product.title ? await ProductManager.findByTitle(title) : '';
 
   if (existProduct) {
     return next(new RequestError('Product with this title already exist'));
   }
 
-  const editedProduct = await getConnection()
-    .createQueryBuilder()
-    .update(Product)
-    .set({ title, price, genre })
-    .where('id = :id', { id: product.id })
-    .returning('*')
-    .execute();
+  const editedProduct = await ProductManager.update({ title, price, genre }, product.id);
 
   res.status(200).json({
-    product: editedProduct.raw[0],
+    product: editedProduct,
   });
 });
 
@@ -138,13 +119,13 @@ export const removeProduct = asyncHandler(async (req: Request, res: Response, ne
     return next(new NotFoundError('Product dose not exist!'));
   }
 
-  const product = await Product.findOne({ where: { id: req.params.productId } });
+  const product = await ProductManager.findById(req.params.productId);
 
   if (!product) {
     return next(new NotFoundError('Product dose not exist!'));
   }
 
-  await Product.delete({ id: product.id });
+  await ProductManager.remove(product.id);
 
   res.status(200).json({
     success: true,
@@ -159,7 +140,7 @@ export const imageUpload = asyncHandler(async (req: Request, res: Response, next
   if (!req.params.productId) {
     return next(new NotFoundError('Product dose not exits!'));
   }
-  const product = await Product.findOne({ where: { id: req.params.productId } });
+  const product = await ProductManager.findById(req.params.productId);
   // exist?
   if (!product) return next(new NotFoundError('Product dose not exits!'));
 
@@ -181,15 +162,9 @@ export const imageUpload = asyncHandler(async (req: Request, res: Response, next
       console.log(err);
       return next(new RequestError('Problem with image Upload'));
     }
-    const updatedProduct = await getConnection()
-      .createQueryBuilder()
-      .update(Product)
-      .set({ image: image.name })
-      .where('id = :id', { id: product.id })
-      .returning('*')
-      .execute();
+    const updatedProduct = await ProductManager.update({ image: image.name }, product.id);
     res.status(200).json({
-      image: updatedProduct.raw[0].image,
+      image: updatedProduct.image,
     });
   });
 }); // end

@@ -13,6 +13,7 @@ export interface updateInput {
 
 class CategoryManager {
   create = async ({ title, creatorId }: categoryInput): Promise<Category> => {
+    console.log(title);
     const category = await Category.create({ title, creatorId });
 
     return category;
@@ -22,11 +23,10 @@ class CategoryManager {
     await category.save();
   };
 
-  remove = async (
-    id: string | FindOperator<string> | undefined,
-    creatorId: string | FindOperator<string> | undefined
-  ) => {
-    await Category.delete({ id, creatorId });
+  getAll = async (): Promise<Category[]> => {
+    const categories = await Category.find();
+
+    return categories;
   };
 
   findByTitle = async (title: string): Promise<Category | undefined> => {
@@ -39,6 +39,13 @@ class CategoryManager {
     const category = await Category.findOne({ where: { id } });
 
     return category;
+  };
+
+  remove = async (
+    id: string | FindOperator<string> | undefined,
+    creatorId: string | FindOperator<string> | undefined
+  ) => {
+    await Category.delete({ id, creatorId });
   };
 
   update = async (data: updateInput, id: string | FindOperator<string> | undefined): Promise<Category> => {

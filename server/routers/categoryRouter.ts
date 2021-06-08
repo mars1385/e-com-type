@@ -9,8 +9,11 @@ import {
 } from '../controllers/categoryController';
 
 import { protectedRoute, adminRoute } from '../middleware/auth';
+import productRouter from './productRouter';
 
 const router = Router();
+
+router.use('/:categoryId/product', productRouter);
 
 // "/api/category"
 router.route('/').post(protectedRoute, adminRoute, createCategory).get(getCategories);

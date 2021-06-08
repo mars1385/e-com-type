@@ -10,7 +10,9 @@ import { redisClient } from './middleware/cache';
 import connectRedis from 'connect-redis';
 import authRouter from './routers/authRouter';
 import categoryRouter from './routers/categoryRouter';
+import productRouter from './routers/productRouter';
 import fileupload from 'express-fileupload';
+
 // -----------------end--------------------
 
 dotenv.config();
@@ -50,6 +52,7 @@ if (process.env.NODE_ENV === 'development') {
 // routes
 app.use('/api/auth', authRouter);
 app.use('/api/category', categoryRouter);
+app.use('/api/product', productRouter);
 
 app.use(errorHandler);
 

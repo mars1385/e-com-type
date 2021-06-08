@@ -8,7 +8,7 @@ import {
   ManyToOne,
   OneToMany,
 } from 'typeorm';
-import { IsEmpty } from 'class-validator';
+import { IsNotEmpty } from 'class-validator';
 import { Category } from './Category';
 import { OrderDetail } from './OrderDetail';
 
@@ -18,20 +18,16 @@ export class Product extends BaseEntity {
   id!: string;
 
   @Column()
-  @IsEmpty({ message: 'Category Product need a title' })
+  @IsNotEmpty({ message: 'Category Product need a title' })
   title!: string;
 
   @Column()
-  @IsEmpty({ message: 'Category Product need a genre' })
+  @IsNotEmpty({ message: 'Category Product need a genre' })
   genre!: string;
 
   @Column({ type: 'decimal' })
-  @IsEmpty({ message: 'Category Product need a price' })
+  @IsNotEmpty({ message: 'Category Product need a price' })
   price!: number;
-
-  @Column()
-  @IsEmpty({ message: 'Category Product need a slug' })
-  slug!: string;
 
   @Column({ default: 'no-image.jpg' })
   image!: string;
